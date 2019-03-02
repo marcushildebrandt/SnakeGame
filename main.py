@@ -15,6 +15,7 @@ class Game:
 	def __init__(self, title, screen_width, screen_height):
 		self.game_finished = False
 		pygame.init()
+		pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
 		random.seed()
 		self.clock = pygame.time.Clock()
 		self.frame_rate = 30
@@ -31,6 +32,13 @@ class Game:
 		self.fruit = Fruit((200, 290), (self.block_width, self.block_height), (0, 255, 0), (self.screen_width, self.screen_height), self.radius)
 		self.sprite_group = pygame.sprite.Group(self.snake, self.fruit)
 		self.new_snake_direction = (1, 0)
+		pygame.mixer.music.load("data/music.mp3")
+		pygame.mixer.music.play(loops=-1)
+		self.pick_up = pygame.mixer.Sound("data/sfx01.wav")
+		self.failed = pygame.mixer.Sound("data/sfx02.wav")
+		self.score = 0
+		self.font = pygame.font.Font("data/freesansbold.ttf", 20)
+		self.font_image = self.font.render(str(self.score), True, (255,255,255))
 	
 	def run(self):
 		while(not self.game_finished):
@@ -51,13 +59,21 @@ class Game:
 		if pygame.sprite.collide_rect(self.fruit, self.snake):
 			self.fruit.new()
 			self.snake.new()
+			self.pick_up.play()
+			self.score += 1
 		if self.is_out_on_the_screen(self.snake.rect):
 			self.reset()
+			self.failed.play()
 		if self.snake.has_blocks_colliding():
 			self.reset()
+			self.failed.play()
 	
 	def draw_on_the_screen(self):
 		self.screen.blit(self.background.image, self.background.rect)
+		self.font_image = self.font.render(str(self.score), True, (255,255,255))
+		size =self.font.size(str(self.score))
+		position = (self.screen_width-size[X], 0)
+		self.screen.blit(self.font_image, (position, size))
 		self.sprite_group.draw(self.screen)
 		pygame.display.flip()
 	
@@ -95,6 +111,7 @@ class Game:
 	def reset(self):
 		self.fruit.new()
 		self.snake.reset()
+		self.score = 0
 
 
 class Snake(pygame.sprite.Sprite):
@@ -141,9 +158,6 @@ class Snake(pygame.sprite.Sprite):
 			block = SnakeBodyBlock(self.track[0], (self.rect.w, self.rect.h), self.color, self.radius)
 			self.body.append(block)
 		self.body[len(self.body)-1].add(self.groups())
-		print(self.rect.x, self.rect.y)
-		for block in self.body:
-			print(block.rect.x, block.rect.y)
 	
 	def update_track(self, position, limite):
 		self.track.append(position)
